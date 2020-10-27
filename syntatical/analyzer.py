@@ -31,6 +31,8 @@ class SyntaticalAnalyzer:
     sematics_analyzer = SemanticAnalyzer(lexical)
 
     while not self.final(action):
+      print('state: {}\tcurrToken: {} {}\taction: {}\t SyntaticalStack: {}'.format(state, curr_token.value, curr_token, action, self.stack))
+      
       state, is_shift = self.shift(action)
       if is_shift:
         self.stack.append(state)
