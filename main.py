@@ -1,30 +1,18 @@
 from lexical.token import Token
 from lexical.tokenizer import Tokenizer 
 
-from syntatical.analyzer import Analyzer
+from syntatical.analyzer import SyntaticalAnalyzer
 
 code = """
-function fibonacci(n : integer) : integer {
-  var ret : integer;
+function fib(n : integer) : integer {
+  var result : integer;
+  result = 1;
   if (n >= 2)
-    ret = fibonacci(n-1) + fibonacci(n-2);
+    ret = fib(n-1) + fib(n-2);
 }
-"""
-
-code += '\x03'
+""" + '\x03'
 
 tokenizer = Tokenizer(code)
-# token, tokenSecundario, identificador = tokenizer.nextToken()
-# while token is not Token.EOF:
-#   print(token, tokenSecundario, identificador)
-#   token, tokenSecundario, identificador = tokenizer.nextToken()
 
-synt_analyzer = Analyzer()
+synt_analyzer = SyntaticalAnalyzer()
 synt_analyzer.run_analysis(tokenizer)
-
-
-# function fat(n : integer) : integer {
-#   var ret : integer;
-#   if (n >= 2)
-#     ret = n * fat(n-1);
-# }

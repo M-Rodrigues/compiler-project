@@ -17,8 +17,17 @@ class Tokenizer:
     # tabela com valor das constantes
     self.vConst = {}
 
+    # Token Secundario do token atual
+    self.secondaryToken = None
+
     self.setCodeString(s)
   
+  def getIdName(self, ts):
+    for key in self.idNames:
+      if self.idNames[key] == ts:
+        return key
+    return None
+
   def setCodeString(self, s):
     self.codeString = s
     self.charIdCodeString = 0
@@ -43,12 +52,27 @@ class Tokenizer:
   def getTokenSecundario(self, text):
     if text not in self.idNames:
       self.idNames[text] = len(self.idNames)
-    return self.idNames[text]
+    self.secondaryToken = self.idNames[text]
+    
+    print(self.vConst)
+    return self.secondaryToken
   
   def addIntConst(self, text):
     tokenSecundario = self.getTokenSecundario(text)
     self.vConst[tokenSecundario] = int(text)
     return tokenSecundario
+  
+  def getIntConst(self, text):
+    return self.getConst(text)
+  
+  def getStrConst(self, text):
+    return self.getConst(text)
+  
+  def getChrConst(self, text):
+    return self.getConst(text)
+  
+  def getConst(self, text):
+    return self.vConst[text]
   
   def addFloatConst(self, text):
     tokenSecundario = self.getTokenSecundario(text)
