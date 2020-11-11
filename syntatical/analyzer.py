@@ -50,3 +50,5 @@ class SyntaticalAnalyzer:
         sematics_analyzer.check(rule)
 
       action = self.action_table[state][curr_token.value]
+    
+    sematics_analyzer.close_file()

@@ -21,8 +21,23 @@ class SemanticAnalyzer():
     self.curFunction = ScopeObject()
     self.n = ""
     self.rLabel = ""
+    self.labelNo = 0
     self.name = ""
     self.constPool = 0
+    
+    # with open('output.file', 'w') as arq:
+    #   arq.close()
+    self.output_file = open('output.file', 'w')
+      
+  def close_file(self):
+    self.output_file.close()
+  
+  def write_to_output_file(self, line):
+    self.output_file.write(line)
+  
+  def new_label(self):
+    self.labelNo += 1
+    return self.labelNo
 
   def check(self, rule):
     # print('Verificando regra semantica', rule, SemRule(rule).name, 'tokenSecundario', self.lexical.secondaryToken, '~{}~'.format(self.lexical.getIdName(self.lexical.secondaryToken)))
@@ -36,8 +51,10 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_REDCL)
       p = self.scope.define(name)
       p.eKind = ScopeKind.UNDEFINED_
+     
       SemTypes.IDD_.t_nont=Nonterminal.ID
       SemTypes.IDD_._=SemTypes.ID(p,name)
+      # print(SemTypes.IDD_._.__dict__)
       self.push(SemTypes.IDD_)
     elif rule == SemRule.IDU0.value: # IDU -> Id
         name = self.lexical.secondaryToken
@@ -53,7 +70,7 @@ class SemanticAnalyzer():
       IDD_ = self.top()
       self.f = SemTypes.IDD_._.objeto
       self.f.eKind = ScopeKind.FUNCTION_
-      self.f._ = Function(None,None,self.nFuncs,0,0) #E SE F JÁ TIVER VALORES NOS 3 PRIMEIROS CAMPOS?
+      self.f._ = Function(None,None,self.nFuncs,0,0)
       self.nFuncs += 1
       self.scope.new_block()
     
@@ -61,14 +78,14 @@ class SemanticAnalyzer():
     elif rule == SemRule.T0.value: # T -> 'integer'
       SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(IntObj))
       self.push(SemTypes.T_)
-    elif rule == SemRule.T1.value:
-      SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(CharObj)) # T -> 'char'
+    elif rule == SemRule.T1.value: # T -> 'char'
+      SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(CharObj))
       self.push(SemTypes.T_)
-    elif rule==SemRule.T2.value:
-      SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(BoolObj)) # T -> 'boolean'
+    elif rule==SemRule.T2.value: # T -> 'boolean'
+      SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(BoolObj))
       self.push(SemTypes.T_)
     elif rule==SemRule.T3.value: # T -> 'string'
-      SemTypes.T_=SemTypes.T_Attrib(T,1,SemTypes.T(StringObj))
+      SemTypes.T_=SemTypes.T_Attrib(Nonterminal.T,1,SemTypes.T(StringObj))
       self.push(SemTypes.T_)
     elif rule == SemRule.T4.value: # T -> IDU
       SemTypes.IDU_=self.pop()
@@ -104,11 +121,13 @@ class SemanticAnalyzer():
     elif rule==SemRule.MF0.value: # MF -> ''
         SemTypes.T_=self.pop()
         SemTypes.LP_=self.pop()
-        SemTypes.IDD_=self.pop() #TA DANDO VAZIO, É NORMAL?
+        SemTypes.IDD_=self.pop() 
         self.f=SemTypes.IDD_._.objeto
         self.f.eKind=ScopeKind.FUNCTION_
-        self.f._=Function(SemTypes.T_._.type,SemTypes.LP_._.list,self.f._.nIndex,SemTypes.LP_.nSize,SemTypes.LP_.nSize) #E se F n for function
+        self.f._=Function(SemTypes.T_._.type,SemTypes.LP_._.list,self.f._.nIndex,SemTypes.LP_.nSize,SemTypes.LP_.nSize) 
         self.curFunction=self.f
+        
+        self.write_to_output_file("BEGIN_FUNC {} {}\n".format(self.f._.nIndex, self.f._.nParams))    
     
     # Variaveis
     elif rule==SemRule.LI1.value: # LI -> IDD
@@ -137,7 +156,7 @@ class SemanticAnalyzer():
     elif rule == SemRule.LDV0.value: pass # LDV -> LDV DV
     elif rule == SemRule.LDV1.value: pass # LDV -> DV
     
-    # Atribuicao de valroes
+    # Atribuicao de valores
     elif rule == SemRule.LV0.value: # LV -> LV '.' IDU
       SemTypes.ID_=StackSem.pop()
       SemTypes.LV1_=StackSem.pop()
@@ -158,6 +177,8 @@ class SemanticAnalyzer():
         else:
           SemTypes.LV0_=SemTypes.T_Attrib(Nonterminal.LV,None,SemTypes.LV(p._.tipo))
           SemTypes.LV0._.type._=Type(None,p._.nSize)
+        self.write_to_output_file("\tADD {}".format(p._.nIndex))
+
       self.push(SemTypes.LV0_)
     elif rule == SemRule.LV1.value: # LV -> LV '[' E ']'
       SemTypes.E_=self.pop()
@@ -172,6 +193,10 @@ class SemanticAnalyzer():
       else:
         SemTypes.LV0_=SemTypes.T_Attrib(Nonterminal.LV,None,SemTypes.LV(t._.tipoElemento))
         self.n=self.t._tipoElemento._.nSize
+        
+        self.write_to_output_file('\tMUL {}\n'.format(self.n))
+        self.write_to_output_file('\tADD\n')
+        
       if not self.scope.check_types(SemTypes.E_._.type,IntObj):
         ErrorHandler(ErrorTypes.ERR_INVALID_INDEX_TYPE)
       self.push(SemTypes.LV0_)
@@ -186,6 +211,8 @@ class SemanticAnalyzer():
       else:
         SemTypes.LV_=SemTypes.T_Attrib(Nonterminal.LV,None,SemTypes.LV(p._.tipo))
         SemTypes.LV_._.type._=Type(None,p._.nSize)
+        
+        self.write_to_output_file('\tLOAD_REF {}\n'.format(p._.nIndex))
       self.push(SemTypes.LV_)
     
     # Expressoes elementares
@@ -194,12 +221,17 @@ class SemanticAnalyzer():
       self.n=SemTypes.LV_._.type._.nSize 
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(SemTypes.LV_._.type))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tDE_REF\n')
     elif rule==SemRule.F1.value: # F -> '++' LV
       SemTypes.LV_=self.pop()
       self.t=SemTypes.LV_._.type
       if not self.scope.check_types(self.t,IntObj):
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(IntObj))
+      
+      self.write_to_output_file('\tDUP\n\tDUP\n\tDE_REF 1\n')
+      self.write_to_output_file('\tINC\n\tSTORE_REF 1\n\tDE_REF 1\n')
     elif rule==SemRule.F2.value: # F -> '--' LV
       SemTypes.LV_=self.pop()
       self.t=SemTypes.LV_._.type
@@ -207,6 +239,9 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(SemTypes.LV_._.type))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tDUP\n\tDUP\n\tDE_REF 1\n')
+      self.write_to_output_file('\tDEC\n\tSTORE_REF 1\n\tDE_REF 1\n')
     elif rule==SemRule.F3.value: # F -> LV '++'
       SemTypes.LV_=self.pop()
       self.t=SemTypes.LV_._.type
@@ -214,6 +249,10 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypesF(SemTypes.LV_._.type))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tDUP\n\tDUP\n\tDE_REF 1\n')
+      self.write_to_output_file('\tINC\n\tSTORE_REF 1\n\tDE_REF 1\n')
+      self.write_to_output_file('\tDEC\n')
     elif rule==SemRule.F4.value: # F -> LV '--'
       SemTypes.LV_=self.pop()
       self.t=SemTypes.LV_._.type
@@ -221,10 +260,26 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypesF(self.t))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tDUP\n\tDUP\n\tDE_REF 1\n')
+      self.write_to_output_file('\tDEC\n\tSTORE_REF 1\n\tDE_REF 1\n')
+      self.write_to_output_file('\tINC\n')
     elif rule==SemRule.F5.value: # F -> '(' E ')'
       SemTypes.E_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypesF(SemTypesE_._.type))
-      self.push(SemTypes.F_)
+      self.push(SemTypes.F_) 
+    elif rule==SemRule.F6.value: # F -> IDU MC '(' LE ')'
+        SemTypes.LE_=self.pop()
+        SemTypes.MC_=self.pop()
+        SemTypes.IDU_=self.pop()
+        self.f=SemTypes.IDU_._.objeto
+        SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(SemTypes.MC_._.type))
+        if not SemTypes.LE_._.err:
+          if SemTypes.LE_._.n-1 < self.f._nParams and SemTypes.LE_._.n != 0:
+            ErrorHandler(ErrorTypes.ERR_TOO_FEW_ARGS)
+          elif SemTypes.LE_._.n-1 > self.f._.nParams:
+            ErrorHandler(ErrorTypes.ERR_TOO_MANY_ARG)
+        self.append(SemTypes.F_)
     elif rule==SemRule.F7.value: # F -> '-' F
       SemTypes.F1_=self.pop()
       self.t=SemTypes.F1_._.type
@@ -232,6 +287,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F0_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(t))
       self.push(SemTypes.F0_)
+
+      self.write_to_output_file('\tNEG\n')
     elif rule==SemRule.F8.value: # F -> '!' F
       SemTypes.F1_=self.pop()
       t=SemTypes.F1_._.type
@@ -239,32 +296,44 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.F0_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(self.t))
       self.push(SemTypes.F0_)
+      
+      self.write_to_output_file('\tNOT\n')
     elif rule==SemRule.F9.value: # F -> TRUE
       SemTypes.TRU_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(BoolObj))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tLOAD_TRUE\n')
     elif rule==SemRule.F10.value: # F -> FALSE
       SemTypes.FALS_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(BoolObj))
       self.push(SemTypes.F_)
+      
+      self.write_to_output_file('\tLOAD_FALSE\n')
     elif rule==SemRule.F11.value: # F -> CHR
       SemTypes.CHR_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(CharObj))
       self.push(SemTypes.F_)
       self.n = self.lexical.secondaryToken
       self.constPool+=1
+      
+      self.write_to_output_file('\tLOAD_CONST {}\n'.format(self.constPool))
     elif rule==SemRule.F12.value: # F -> STR
       SemTypes.STR_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(StringObj))
       self.push(SemTypes.F_)
       self.n = self.lexical.secondaryToken
       self.constPool+=1
+      
+      self.write_to_output_file('\tLOAD_CONST {}\n'.format(self.constPool))
     elif rule==SemRule.F13.value: # F -> NUM
       SemTypes.NUM_=self.pop()
       SemTypes.F_=SemTypes.T_Attrib(Nonterminal.F,None,SemTypes.F(IntObj))
       self.push(SemTypes.F_)
       self.n = self.lexical.secondaryToken
       self.constPool+=1
+      
+      self.write_to_output_file('\tLOAD_CONST {}\n'.format(self.constPool))
 
     # Expressoes Aritimeticas
     elif rule == SemRule.R0.value:
@@ -272,19 +341,25 @@ class SemanticAnalyzer():
       SemTypes.R1_=self.pop()
       if not self.scope.check_types(SemTypes.R1_._.type,SemTypes.Y_._.type):
           ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
-      if not self.scope.check_types(SemTypes.R1_._.type,int_) and (not self.scope.check_types(SemTypes.R1_._.type,string_)):
+      print(SemTypes.R1_._.__dict__)
+      print(IntObj)
+      if not self.scope.check_types(SemTypes.R1_._.type,IntObj) and (not self.scope.check_types(SemTypes.R1_._.type, StringObj)):
           ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.R0_=SemTypes.T_Attrib(Nonterminal.R,None,SemTypes.R(SemTypes.R1_._.type))
       self.push(SemTypes.R0_)
+      
+      self.write_to_output_file("\tADD\n")
     elif rule == SemRule.R1.value:
       SemTypes.Y_=self.pop()
       SemTypes.R1_=self.pop()
       if not self.scope.check_types(SemTypes.R1_._.type,SemTypes.Y_._.type):
           ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
-      if not self.scope.check_types(SemTypes.R1_._.type,int_):
+      if not self.scope.check_types(SemTypes.R1_._.type,IntObj):
           ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.R0_=SemTypes.T_Attrib(Nonterminal.R,None,SemTypes.R(SemTypes.R1_._.type))
       self.push(SemTypes.R0_)
+      
+      self.write_to_output_file("\tSUB\n")
     elif rule == SemRule.R2.value:
       SemTypes.Y_=self.pop()
       SemTypes.R_=SemTypes.T_Attrib(Nonterminal.R,None,SemTypes.R(SemTypes.Y_._.type))
@@ -298,6 +373,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.Y0_=SemTypes.T_Attrib(Nonterminal.Y,None,SemTypes.Y(SemTypes.Y1_._.type))
       self(SemTypes.Y0_)
+      
+      self.write_to_output_file("\tMUL\n")
     elif rule == SemRule.Y1.value:
       SemTypes.F_=self.pop()
       SemTypes.Y1_=self.pop()
@@ -307,6 +384,8 @@ class SemanticAnalyzer():
           ErrorHandler(ErrorTypes.ERR_INVALID_TYPE)
       SemTypes.Y0_=SemTypes.T_Attrib(Nonterminal.Y,None,SemTypes.Y(SemTypes.Y1_._.type))
       self(SemTypes.Y0_)
+      
+      self.write_to_output_file("\tDIV\n")
     elif rule == SemRule.Y2.value:
       SemTypes.F_=self.pop()
       SemTypes.Y_=SemTypes.T_Attrib(Nonterminal.Y,None,SemTypes.Y(SemTypes.F_._.type))
@@ -322,6 +401,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_BOOL_TYPE_EXPECTED)
       SemTypes.E0_=SemTypes.T_Attrib(Nonterminal.E,None,SemTypes.SemTypes.E(BoolObj))
       self.push(SemTypes.E0_)
+      
+      self.write_to_output_file("\tAND\n")
     elif rule == SemRule.E1.value:
       SemTypes.L_=self.pop()
       SemTypes.E1_=self.pop()
@@ -331,9 +412,12 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_BOOL_TYPE_EXPECTED)
       SemTypes.E0_=SemTypes.T_Attrib(Nonterminal.E,None,SemTypes.E(BoolObj))
       self.push(SemTypes.E0_)
+      
+      self.write_to_output_file("\tOR\n")
     elif rule == SemRule.E2.value:
       SemTypes.L_=self.pop()
       SemTypes.E_=SemTypes.T_Attrib(Nonterminal.E,None,SemTypes.E(SemTypes.L_._.type))
+      self.push(SemTypes.E_)
 
     # Expressoes Relacionais
     elif rule == SemRule.L0.value:
@@ -343,6 +427,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
       SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,SemTypes.L(BoolObj))
       self.push(SemTypes.L0_)
+      
+      self.write_to_output_file("\tLT\n")
     elif rule == SemRule.L1.value:
       SemTypes.R_=self.pop()
       SemTypes.L1_=self.pop()
@@ -350,6 +436,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
       SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,BoolObj)
       self.push(SemTypes.L0_)
+      
+      self.write_to_output_file("\tGT\n")
     elif rule == SemRule.L2.value:
       SemTypes.R_=self.pop()
       SemTypes.L1=self.pop()
@@ -357,13 +445,16 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
       SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,BoolObj)
       self.push(SemTypes.L0_)
+      
+      self.write_to_output_file("\tLE\n")
     elif rule == SemRule.L3.value:
       SemTypes.R_=self.pop()
-      SemTypes.L1=self.pop()
+      SemTypes.L1_=self.pop()
       if not self.scope.check_types(SemTypes.L1_._.type,SemTypes.R_._.type):
         ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
-      SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,BoolObj)
+      SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,SemTypes.L(BoolObj))
       self.push(SemTypes.L0_)
+      self.write_to_output_file("\tGE\n")
     elif rule == SemRule.L4.value:
       SemTypes.R_=self.pop()
       L1=self.pop()
@@ -371,6 +462,7 @@ class SemanticAnalyzer():
           ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
       SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,BoolObj)
       self.push(SemTypes.L0_)
+      self.write_to_output_file("\tEQ\n")
     elif rule == SemRule.L5.value:
       SemTypes.R_=self.pop()
       SemTypes.L1=self.pop()
@@ -378,6 +470,8 @@ class SemanticAnalyzer():
         ErrorHandler(ErrorTypes.ERR_TYPE_MISMATCH)
       SemTypes.L0_=SemTypes.T_Attrib(Nonterminal.L,None,BoolObj)
       self.push(SemTypes.L0_)
+      
+      self.write_to_output_file("\tNE\n")
     elif rule == SemRule.L6.value:
       SemTypes.R_=self.pop()
       SemTypes.L_=SemTypes.T_Attrib(Nonterminal.L,None,SemTypes.L(SemTypes.R_._.type))
@@ -385,27 +479,74 @@ class SemanticAnalyzer():
 
     # Atributos para os Literais
     elif rule == SemRule.TRUE0.value:
-        SemTypes.TRU_=t_attrib(Nonterminal.TRU,None,SemTypes.TRU(BoolObj,True)) #tem problema ter o None?
-        self.push(SemTypes.TRU_)
+      SemTypes.TRU_=t_attrib(Nonterminal.TRU,None,SemTypes.TRU(BoolObj,True)) #tem problema ter o None?
+      self.push(SemTypes.TRU_)
     elif rule == SemRule.FALSE0.value:
-        SemTypes.FALS_=SemTypes.T_Attrib(Nonterminal.FALS,None,SemTypes.FALS(BoolObj,False))
-        self.push(SemTypes.FALS_)
+      SemTypes.FALS_=SemTypes.T_Attrib(Nonterminal.FALS,None,SemTypes.FALS(BoolObj,False))
+      self.push(SemTypes.FALS_)
     elif rule == SemRule.CHR0.value:
-        SemTypes.CHR_=SemTypes.T_Attrib(Nonterminal.CHR,None,SemTypes.CHR(CharObj,self.lexical.secondaryToken,self.lexical.getChrConst(self.lexical.secondaryToken)))
-        self.push(SemTypes.CHR_)
+      SemTypes.CHR_=SemTypes.T_Attrib(Nonterminal.CHR,None,SemTypes.CHR(CharObj,self.lexical.secondaryToken,self.lexical.getChrConst(self.lexical.secondaryToken)))
+      self.push(SemTypes.CHR_)
     elif rule == SemRule.STR0.value:
-        SemTypes.STR_=SemTypes.T_Attrib(Nonterminal.STR,None,SemTypes.STR(StringObj,self.lexical.getStrConst(self.lexical.secondaryToken),self.lexical.secondaryToken))
-        self.push(SemTypes.STR_)
+      SemTypes.STR_=SemTypes.T_Attrib(Nonterminal.STR,None,SemTypes.STR(StringObj,self.lexical.getStrConst(self.lexical.secondaryToken),self.lexical.secondaryToken))
+      self.push(SemTypes.STR_)
     elif rule == SemRule.NUM0.value:
       # Verificar erro do token secundario
       SemTypes.NUM_=SemTypes.T_Attrib(Nonterminal.NUM,None,SemTypes.NUM(IntObj,2,self.lexical.secondaryToken))
       # SemTypes.NUM_=SemTypes.T_Attrib(Nonterminal.NUM,None,SemTypes.NUM(IntObj,self.lexical.secondaryToken,self.lexical.secondaryToken))
       self.push(SemTypes.NUM_)
     
+    # Comandos de selecao
+    elif rule == SemRule.MT0.value: # MT -> ''
+      rLabel=self.new_label()
+      SemTypes.MT_=SemTypes.T_Attrib(Nonterminal.MT,None,SemTypes.MT(rLabel))
+      self.push(SemTypes.MT_)
+      
+      self.write_to_output_file("TJMP_FW L{}".format(rLabel))
+
+    elif rule == SemRule.MC0.value: # MC -> ''
+      SemTypes.IDU_=self.pop()
+      self.f=SemTypes.IDU_._.objeto
+      if(self.f.eKind!=ScopeKind.FUNCTION_):
+        SemTypes.MC_=SemTypes.T_Attrib(Nonterminal.MC,None,SemTypes.MC(UniversalObj,None,True))
+      else:
+        SemTypes.MC_=SemTypes.T_Attrib(Nonterminal.MC,None,SemTypes.MC(self.f._.pRetType,self.f._.pParams,False))
+      self.push(SemTypes.MC_)
+    elif rule == SemRule.LE1.value: # LE -> E
+      SemTypes.E_=self.pop()
+      SemTypes.MC_=self.pop()
+      SemTypes.LE_=SemTypes.T_Attrib(Nonterminal.LE,None,SemTypes.LE(None,None,SemTypes.MC_._.err,1))
+      if not SemTypes.MC_._.err:
+        p=SemTypes.MC_._.param 
+        print(p)
+        if p==None:
+          ErrorHandler(ErrorTypes.ERR_TOO_MANY_ARG)
+          SemTypes.LE_._.err=True
+        else:
+          # if not self.scope.check_types(p._.tipo,SemTypes.E_._.type):
+          #   ErrorHandler(ErrorTypes.ERR_PARAM_TYPE)
+          SemTypes.LE_._.param=p.pNext
+          SemTypes.LE_._.n=n+1
+      self.push(SemTypes.LE_)
+    elif rule == SemRule.LE0.value:  # LE -> LE ',' E
+      SemTypes.E_=self.pop()
+      SemTypes.LE1_=self.pop()
+      SemTypes.LE0_=t_attrib(Nonterminal.LE,None,SemTypes.LE(None,None,SemTypes.L1_._.err,SemTypes.LE1_._.n))
+      if not SemTypes.LE1_._.err:
+        p=SemTypes.LE1_._.param
+        if p==None:
+          ErrorHandler(ErrorTypes.ERR_TOO_MANY_ARG)
+          SemTypes.LE0_._.err=True
+        else:
+          if not self.scope.check_types(p._.tipo,SemTypes.E_._.type):
+            ErrorHandler(ErrorTypes.ERR_PARAM_TYPE)
+          SemTypes.LE0._.param=p.pNext
+          SemTypes.LE0._.n=n+1
+      self.push(SemTypes.LE0_)
     
     else:
       pass
-      # print('\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tSem regra semantica para {} {} :('.format(rule, SemRule(rule).name))
+      print('\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tSem regra semantica para {} {} :('.format(rule, SemRule(rule).name))
 
   def push(self, attribute):
     self.stack.append(attribute)

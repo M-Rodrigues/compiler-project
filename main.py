@@ -4,11 +4,11 @@ from lexical.tokenizer import Tokenizer
 from syntatical.analyzer import SyntaticalAnalyzer
 
 code = """
-function fib(n : integer) : integer {
-  var result : integer;
-  result = 1;
+function fibonacci(n : integer) : integer {
+  var ret : integer;
   if (n >= 2)
-    ret = fib(n-1) + fib(n-2);
+    ret = fibonacci(n-1) + fibonacci(n-2);
+}
 }
 """ + '\x03'
 

@@ -81,10 +81,11 @@ class NUM:
 
 # Estrutura de dados de atributos
 class T_Attrib:
-	def __init__(self, t_nont=None, nSize=None,_=None):
+	def __init__(self, t_nont=None, nSize=None,under=None):
 		self.t_nont=t_nont
 		self.nSize=nSize
-		self._=_
+		self._=under
+  
 	def __str__(self):
 		return '{}'.format(self.t_nont)
 
