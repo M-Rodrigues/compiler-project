@@ -502,7 +502,7 @@ class SemanticAnalyzer():
       SemTypes.MT_=SemTypes.T_Attrib(Nonterminal.MT,None,SemTypes.MT(rLabel))
       self.push(SemTypes.MT_)
       
-      self.write_to_output_file("TJMP_FW L{}".format(rLabel))
+      self.write_to_output_file("TJMP_FW L{}\n".format(rLabel))
 
     elif rule == SemRule.MC0.value: # MC -> ''
       SemTypes.IDU_=self.pop()
