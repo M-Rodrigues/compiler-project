@@ -9,7 +9,6 @@ function fibonacci(n : integer) : integer {
   if (n >= 2)
     ret = fibonacci(n-1) + fibonacci(n-2);
 }
-}
 """ + '\x03'
 
 tokenizer = Tokenizer(code)
